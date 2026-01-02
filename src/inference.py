@@ -5,13 +5,14 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
-# 1. Ініціалізація
+# 1. Init App
 app = FastAPI(title="Churn Prediction Service")
 
-# 2. Налаштування MLflow
-mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000"))
+# 2. Config
+MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000")
+mlflow.set_tracking_uri(MLFLOW_URI)
 
-# 3. Структура вхідних даних
+# 3. Input Schema
 class CustomerData(BaseModel):
     gender: str
     SeniorCitizen: int
@@ -33,11 +34,11 @@ class CustomerData(BaseModel):
     MonthlyCharges: float
     TotalCharges: float
 
-# 4. Допоміжна функція: Перетворення тексту в цифри
+# 4. Preprocessing
 def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     
-    # 1. Словник для базових значень
+    # Map binary values
     mapping = {
         "Yes": 1, "No": 0,
         "No internet service": 0, "No phone service": 0,
@@ -45,22 +46,22 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     }
     df = df.replace(mapping)
     
-    # 2. Для всіх інших текстових колонок (наприклад, PaymentMethod) робимо просте кодування
-    # У продакшені тут мав би бути завантажений OneHotEncoder, але для демо це спрацює.
+    # Encode categorical columns
     for col in df.columns:
         if df[col].dtype == 'object':
             df[col] = df[col].astype('category').cat.codes
             
-    # 3. Гарантуємо, що все стало числами
+    # Ensure numeric format
     return df.apply(pd.to_numeric, errors='coerce').fillna(0)
 
-# 5. Завантаження моделі
+# 5. Load Model from Registry
 def load_latest_model(experiment_name="churn-prediction-exp"):
     client = mlflow.tracking.MlflowClient()
     experiment = client.get_experiment_by_name(experiment_name)
     if not experiment:
         raise ValueError(f"Experiment '{experiment_name}' not found.")
     
+    # Fetch latest successful run
     runs = client.search_runs(
         experiment_ids=[experiment.experiment_id],
         filter_string="status = 'FINISHED'",
@@ -74,8 +75,10 @@ def load_latest_model(experiment_name="churn-prediction-exp"):
     run_id = runs[0].info.run_id
     model_uri = f"runs:/{run_id}/model"
     print(f"📥 Loading model from Run ID: {run_id}...")
+    
     return mlflow.pyfunc.load_model(model_uri)
 
+# Global model instance
 model = None
 
 @app.on_event("startup")
@@ -83,9 +86,9 @@ def startup_event():
     global model
     try:
         model = load_latest_model()
-        print("✅ Model loaded successfully!")
+        print("✅ Model loaded!")
     except Exception as e:
-        print(f"❌ Failed to load model: {e}")
+        print(f"❌ Load failed: {e}")
 
 @app.post("/predict")
 def predict(customer: CustomerData):
@@ -94,13 +97,11 @@ def predict(customer: CustomerData):
         raise HTTPException(status_code=503, detail="Model not loaded")
     
     try:
-        # Створюємо DataFrame
+        # 1. Prepare Data
         data = pd.DataFrame([customer.dict()])
-        
-        # 🔥 Перетворюємо текст на цифри
         processed_data = preprocess_data(data)
         
-        # Прогноз
+        # 2. Predict
         prediction = model.predict(processed_data)
         result = int(prediction[0])
         

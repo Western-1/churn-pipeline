@@ -9,8 +9,6 @@ RUN apt-get update && \
 
 USER airflow
 
-# Копіюємо requirements з папки docker/airflow
 COPY docker/airflow/requirements.txt /requirements.txt
 
-# Встановлюємо бібліотеки
 RUN pip install --no-cache-dir -r /requirements.txt
