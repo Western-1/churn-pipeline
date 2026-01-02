@@ -1,0 +1,8 @@
+pandas
+mlflow==2.14.1
+xgboost
+scikit-learn
+boto3
+python-dotenv
+psycopg2-binary
+evidently==0.6.0
