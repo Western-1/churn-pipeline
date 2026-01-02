@@ -6,3 +6,4 @@ xgboost
 boto3
 scikit-learn
 psycopg2-binary
+python-dotenv
