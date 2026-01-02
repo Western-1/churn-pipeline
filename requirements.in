@@ -1,0 +1,8 @@
+dvc
+dvc-s3
+pandas
+mlflow
+xgboost
+boto3
+scikit-learn
+psycopg2-binary

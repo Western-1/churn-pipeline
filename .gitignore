@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# Data
+data/raw/*
+!data/raw/*.dvc
+!data/raw/.gitignore
+!data/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+
+# Docker volumes
+postgres_data/
+minio_data/
