@@ -15,4 +15,5 @@ logs/
 # --- Airflow ---
 airflow-webserver.pid
 
+data/reports/
 
