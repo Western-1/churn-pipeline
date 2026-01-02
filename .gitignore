@@ -15,7 +15,4 @@ logs/
 # --- Airflow ---
 airflow-webserver.pid
 
-# --- Data (Ignored by Git, tracked by DVC) ---
-data/raw/
-data/processed/
-data/reports/
+

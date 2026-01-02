@@ -9,6 +9,7 @@
 ![Evidently](https://img.shields.io/badge/Evidently-Data_Validation-4B0082?logo=data&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791?logo=postgresql&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Web_Service-009688?logo=fastapi&logoColor=white)
+![DVC](https://img.shields.io/badge/DVC-Data_Version_Control-945DD6?logo=dvc&logoColor=white)
 
 ## 💡 TL;DR — What this is
 
@@ -68,6 +69,7 @@ Churn_Prediction_Pipeline/
 - 🛡️ **Evidently AI** - Data drift detection & validation
 - 🐳 **Docker Compose** - Multi-container orchestration
 - 🐘 **PostgreSQL** - Backend for Airflow & MLflow metadata
+- 🦉 **DVC (Data Version Control)** - Versioning of large datasets & pipeline tracking
 
 ---
 
@@ -90,6 +92,18 @@ Model parameters, metrics, and metadata are automatically logged to the MLflow S
 
 ![MLflow UI](images/mlflow.png)
 *Figure 2: MLflow UI displaying run metrics and parameters*
+
+### 🗂️ Data Versioning (DVC + MinIO)
+
+We strictly separate code from data. While Git tracks the source code and lightweight `.dvc` metadata files, the actual heavy datasets are versioned and stored in **MinIO**.
+
+This ensures:
+1.  **Reproducibility:** Every Git commit is linked to a specific snapshot of data.
+2.  **Storage Efficiency:** Git repository remains lightweight.
+3.  **Collaboration:** The team can pull the exact data version needed for any experiment using `dvc pull`.
+
+![DVC Storage in MinIO](images/dvc-storage.png)
+*Figure: MinIO bucket `dvc-storage` containing hash-addressed data files managed by DVC.*
 
 ### 📦 Artifact Storage (MinIO)
 
