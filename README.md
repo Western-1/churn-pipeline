@@ -8,6 +8,7 @@
 ![XGBoost](https://img.shields.io/badge/XGBoost-Model-EB0000?logo=xgboost&logoColor=white)
 ![Evidently](https://img.shields.io/badge/Evidently-Data_Validation-4B0082?logo=data&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791?logo=postgresql&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Web_Service-009688?logo=fastapi&logoColor=white)
 
 ## 💡 TL;DR — What this is
 
@@ -20,6 +21,10 @@ It automates the lifecycle of a classification model (XGBoost) to predict whethe
 ## 📂 Repository Layout
 ```
 Churn_Prediction_Pipeline/
+├── .dvc/
+├── airflow/
+│   └──dags/
+│   └── plugins/                    
 ├── dags/
 │   └── churn_training_pipeline.py  # Airflow DAG definition
 ├── data/
@@ -31,9 +36,14 @@ Churn_Prediction_Pipeline/
 │   │   └── requirements.txt
 │   └── mlflow/
 │       └── Dockerfile
+├── images/
+├── monitoring/
 ├── src/
+│   ├── inference.py                # (FastAPI Service)
 │   ├── train.py                    # Training logic & MLflow logging
 │   └── validate.py                 # Data validation logic (Evidently)
+├── tests/
+├── .dvcignore                      
 ├── .env                            # Environment variables
 ├── .gitignore
 ├── docker-compose.yml              # Multi-service infrastructure
@@ -63,14 +73,14 @@ Churn_Prediction_Pipeline/
 
 ## 🧠 How It Works
 
-### 1. Pipeline Orchestration (Airflow)
+### 🚀 Pipeline Orchestration (Airflow)
 
 The entire workflow is managed by Apache Airflow. The DAG handles dependencies between data validation and model training tasks.
 
 ![Airflow DAG](images/Airflow.png)
 *Figure 1: Airflow DAG execution graph (Data Validation → Model Training)*
 
-### 2. Experiment Tracking (MLflow)
+### 📊 Experiment Tracking (MLflow)
 
 Model parameters, metrics, and metadata are automatically logged to the MLflow Server.
 
@@ -81,12 +91,61 @@ Model parameters, metrics, and metadata are automatically logged to the MLflow S
 ![MLflow UI](images/mlflow.png)
 *Figure 2: MLflow UI displaying run metrics and parameters*
 
-### 3. Artifact Storage (MinIO)
+### 📦 Artifact Storage (MinIO)
 
 MinIO securely stores the serialized model (`model.pkl`), environment dependencies, and artifacts.
 
 ![MinIO Browser](images/MinIO.png)
 *Figure 3: MinIO bucket structure showing saved artifacts*
+
+### 🔮 Model Serving (FastAPI)
+
+A standalone **FastAPI** microservice loads the latest production model from MLflow and exposes a REST API for real-time predictions. It automatically handles categorical encoding and data preprocessing.
+
+- **Endpoint:** `/predict`
+- **Port:** `8000`
+- **Features:** Auto-reloading model, health checks, Swagger UI documentation.
+
+![Predict Churn/Stay](images/Predict_answer.png)
+
+### How to Predict (Example)
+
+You can use the interactive **Swagger UI** at `http://localhost:8000/docs` or send a curl request:
+
+```bash
+curl -X 'POST' \
+  'http://localhost:8000/predict' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "gender": "Female",
+    "SeniorCitizen": 0,
+    "Partner": "Yes",
+    "Dependents": "No",
+    "tenure": 1,
+    "PhoneService": "No",
+    "MultipleLines": "No phone service",
+    "InternetService": "DSL",
+    "OnlineSecurity": "No",
+    "OnlineBackup": "Yes",
+    "DeviceProtection": "No",
+    "TechSupport": "No",
+    "StreamingTV": "No",
+    "StreamingMovies": "No",
+    "Contract": "Month-to-month",
+    "PaperlessBilling": "Yes",
+    "PaymentMethod": "Electronic check",
+    "MonthlyCharges": 29.85,
+    "TotalCharges": 29.85
+  }
+  ```
+
+## Response:
+```bash
+{
+  "churn_prediction": 1,
+  "message": "Customer will CHURN 🔴"
+}
+```
 
 ---
 
@@ -110,10 +169,11 @@ docker compose up -d --build
 docker ps
 ```
 
-### Fast Links
+### 🔗 Fast Links
 
 | Service | URL | Credentials (Default) |
 |---------|-----|----------------------|
+| **Inference API (Swagger)** | [http://localhost:8000/docs](http://localhost:8000/docs) | None |
 | **Airflow** | [http://localhost:8080](http://localhost:8080) | `airflow` / `airflow` |
 | **MLflow** | [http://localhost:5000](http://localhost:5000) | None |
 | **MinIO Console** | [http://localhost:9001](http://localhost:9001) | `minioadmin` / `minioadmin` |
