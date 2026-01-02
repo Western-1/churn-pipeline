@@ -2,26 +2,39 @@ import pandas as pd
 import mlflow
 import mlflow.sklearn
 from sklearn.preprocessing import LabelEncoder
-from dotenv import load_dotenv  # <--- 1. Спочатку імпортуємо
+from dotenv import load_dotenv
 import os
 
-load_dotenv()  # <--- 2. Потім викликаємо (читає .env файл)
+load_dotenv()
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, roc_auc_score
 from xgboost import XGBClassifier
 
-
-mlflow.set_tracking_uri("http://localhost:5000")
+tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+mlflow.set_tracking_uri(tracking_uri)
 mlflow.set_experiment("churn-prediction-exp")
 
 def main():
+    print(f"Tracking URI set to: {tracking_uri}")
     print("Loading data...")
-    # Читаємо дані
-    df = pd.read_csv("data/raw/data.csv")
+    
+    docker_data_path = "/opt/airflow/data/raw/data.csv"
+    local_data_path = "data/raw/data.csv"
+    
+    if os.path.exists(docker_data_path):
+        data_path = docker_data_path
+    elif os.path.exists(local_data_path):
+        data_path = local_data_path
+    else:
+        raise FileNotFoundError("Could not find data.csv neither in /opt/airflow/data nor in local folder.")
 
-    # Препроцесинг
-    df = df.drop(['customerID'], axis=1)
+    print(f"Reading data from: {data_path}")
+    df = pd.read_csv(data_path)
+
+    if 'customerID' in df.columns:
+        df = df.drop(['customerID'], axis=1)
+        
     df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce').fillna(0)
 
     label_encoders = {}
@@ -61,7 +74,7 @@ def main():
         mlflow.log_metric("accuracy", acc)
         mlflow.log_metric("roc_auc", auc)
 
-        # Використовуємо sklearn flavor для XGBClassifier
+        # Логуємо модель
         mlflow.sklearn.log_model(model, artifact_path="model")
         print("Model saved to MLflow.")
 

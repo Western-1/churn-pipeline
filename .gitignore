@@ -1,19 +1,21 @@
-# Python
+# --- Python / Environment ---
 __pycache__/
 *.py[cod]
 venv/
 .env
 
-# Data
-data/raw/*
-!data/raw/*.dvc
-!data/raw/.gitignore
-!data/.gitkeep
-
-# IDE
+# --- IDE Settings ---
 .vscode/
 .idea/
 
-# Docker volumes
-postgres_data/
-minio_data/.env
+# --- Logs ---
+logs/
+*.log
+
+# --- Airflow ---
+airflow-webserver.pid
+
+# --- Data (Ignored by Git, tracked by DVC) ---
+data/raw/
+data/processed/
+data/reports/
