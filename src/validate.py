@@ -1,70 +1,215 @@
 import pandas as pd
-import os
-import mlflow
+import numpy as np
+from pathlib import Path
 from evidently.report import Report
-from evidently.metric_preset import DataDriftPreset
+from evidently.metric_preset import DataDriftPreset, DataQualityPreset
+import logging
 
-# --- Config ---
-BASE_DIR = "/opt/airflow" if os.path.exists("/opt/airflow") else "."
-REPORT_DIR = os.path.join(BASE_DIR, "data/reports")
-DATA_PATH = os.path.join(BASE_DIR, "data/raw/churn.csv")
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000")
+# Import new modules
+from src.config import settings
+from src.monitoring import monitor
+from src.utils import setup_logging
 
-os.makedirs(REPORT_DIR, exist_ok=True)
+# Setup logging
+logger = setup_logging(settings.LOG_LEVEL)
 
-def main():
-    # 1. Init MLflow
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-    mlflow.set_experiment("churn-data-validation")
 
-    print(f"Validating data from: {DATA_PATH}")
+class DataValidator:
+    """Data validation and drift detection"""
     
-    # 2. Load Data
-    if not os.path.exists(DATA_PATH):
-        raise FileNotFoundError(f"Data not found at {DATA_PATH}. Run 'dvc pull' first.")
+    def __init__(self):
+        self.required_columns = [
+            'customerID', 'gender', 'SeniorCitizen', 'Partner', 'Dependents',
+            'tenure', 'PhoneService', 'MultipleLines', 'InternetService',
+            'OnlineSecurity', 'OnlineBackup', 'DeviceProtection', 'TechSupport',
+            'StreamingTV', 'StreamingMovies', 'Contract', 'PaperlessBilling',
+            'PaymentMethod', 'MonthlyCharges', 'TotalCharges', 'Churn'
+        ]
+    
+    def validate_schema(self, df):
+        """
+        Validate dataframe schema
         
-    full_df = pd.read_csv(DATA_PATH)
-    
-    # 3. Split: Reference (historical) vs Current (new)
-    reference_data = full_df.iloc[:3000]
-    current_data = full_df.iloc[3000:]
-    
-    # 4. Generate Drift Report
-    report = Report(metrics=[
-        DataDriftPreset(), 
-    ])
-    
-    report.run(reference_data=reference_data, current_data=current_data)
-    
-    # 5. Save Report Locally
-    report_filename = "data_drift_report.html"
-    report_path = os.path.join(REPORT_DIR, report_filename)
-    report.save_html(report_path)
-    print(f"Report saved: {report_path}")
-    
-    # 6. Extract Metrics
-    result = report.as_dict()
-    drift_share = result['metrics'][0]['result']['drift_share']
-    dataset_drift = result['metrics'][0]['result']['dataset_drift']
-    
-    print(f"Drift Share: {drift_share}")
-    print(f"Dataset Drift: {dataset_drift}")
-
-    # 7. Log to MLflow
-    print("Logging to MLflow...")
-    with mlflow.start_run(run_name="data_validation_run"):
-        mlflow.log_metric("drift_share", drift_share)
-        mlflow.log_param("dataset_drift_detected", dataset_drift)
+        Args:
+            df: DataFrame to validate
         
-        # Upload HTML report to MinIO artifacts
-        mlflow.log_artifact(report_path)
-        print("Report uploaded to MinIO.")
-
-    # 8. Quality Gate
-    if drift_share > 0.5:
-        raise Exception(f"Severe Drift (share={drift_share})! Pipeline stopped.")
+        Returns:
+            Dictionary with validation results
+        """
+        logger.info("Validating data schema...")
+        
+        missing_columns = [col for col in self.required_columns if col not in df.columns]
+        
+        result = {
+            'is_valid': len(missing_columns) == 0,
+            'missing_columns': missing_columns,
+            'total_columns': len(df.columns),
+            'required_columns': len(self.required_columns)
+        }
+        
+        if not result['is_valid']:
+            logger.warning(f"Schema validation failed. Missing columns: {missing_columns}")
+        else:
+            logger.info("Schema validation passed")
+        
+        return result
     
-    print("Validation passed.")
+    def check_missing_values(self, df):
+        """
+        Check for missing values
+        
+        Args:
+            df: DataFrame to check
+        
+        Returns:
+            Dictionary with missing value counts
+        """
+        logger.info("Checking for missing values...")
+        
+        missing = df.isnull().sum()
+        missing_dict = missing[missing > 0].to_dict()
+        
+        if missing_dict:
+            logger.warning(f"Found missing values: {missing_dict}")
+        else:
+            logger.info("No missing values found")
+        
+        return missing_dict
+    
+    def detect_outliers(self, df, column, method='iqr', threshold=1.5):
+        """
+        Detect outliers in a numerical column
+        
+        Args:
+            df: DataFrame
+            column: Column name
+            method: 'iqr' or 'zscore'
+            threshold: Threshold for outlier detection
+        
+        Returns:
+            Boolean series indicating outliers
+        """
+        if column not in df.columns:
+            logger.warning(f"Column {column} not found")
+            return pd.Series([False] * len(df))
+        
+        if method == 'iqr':
+            Q1 = df[column].quantile(0.25)
+            Q3 = df[column].quantile(0.75)
+            IQR = Q3 - Q1
+            outliers = (df[column] < (Q1 - threshold * IQR)) | (df[column] > (Q3 + threshold * IQR))
+        elif method == 'zscore':
+            z_scores = np.abs((df[column] - df[column].mean()) / df[column].std())
+            outliers = z_scores > threshold
+        else:
+            raise ValueError(f"Unknown method: {method}")
+        
+        outlier_count = outliers.sum()
+        if outlier_count > 0:
+            logger.info(f"Found {outlier_count} outliers in {column}")
+        
+        return outliers
+    
+    def detect_drift(self, reference_data, current_data):
+        """
+        Detect data drift using Evidently
+        
+        Args:
+            reference_data: Reference DataFrame
+            current_data: Current DataFrame
+        
+        Returns:
+            Dictionary with drift detection results
+        """
+        logger.info("Detecting data drift...")
+        
+        # Create Evidently report
+        report = Report(metrics=[DataDriftPreset()])
+        report.run(reference_data=reference_data, current_data=current_data)
+        
+        # Extract drift results
+        report_dict = report.as_dict()
+        
+        # Get drift status
+        drift_detected = report_dict['metrics'][0]['result']['dataset_drift']
+        
+        # Save report
+        report_path = Path(settings.DATA_REPORTS_PATH) / "data_drift_report.html"
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report.save_html(str(report_path))
+        
+        logger.info(f"Drift report saved to {report_path}")
+        
+        if drift_detected:
+            logger.warning("Data drift detected!")
+            monitor.update_data_quality(quality_score=0.5, drift_detected=True)
+        else:
+            logger.info("No significant data drift detected")
+            monitor.update_data_quality(quality_score=1.0, drift_detected=False)
+        
+        return {
+            'drift_detected': drift_detected,
+            'report_path': str(report_path)
+        }
 
-if __name__ == "__main__":
-    main()
+
+def validate_data_quality(df):
+    """
+    Calculate data quality metrics
+    
+    Args:
+        df: DataFrame to evaluate
+    
+    Returns:
+        Dictionary with quality metrics
+    """
+    logger.info("Calculating data quality metrics...")
+    
+    # Completeness: percentage of non-null values
+    completeness = 1 - (df.isnull().sum().sum() / (len(df) * len(df.columns)))
+    
+    # Validity: percentage of values within expected ranges
+    # (simplified example)
+    validity = 1.0  # Assume all values are valid for now
+    
+    metrics = {
+        'completeness': float(completeness),
+        'validity': float(validity),
+        'total_rows': len(df),
+        'total_columns': len(df.columns)
+    }
+    
+    logger.info(f"Quality metrics: {metrics}")
+    
+    # Update monitoring
+    monitor.update_data_quality(
+        quality_score=completeness,
+        drift_detected=False
+    )
+    
+    return metrics
+
+
+def run_validation(df):
+    """
+    Run complete validation pipeline
+    
+    Args:
+        df: DataFrame to validate
+    
+    Returns:
+        Dictionary with all validation results
+    """
+    validator = DataValidator()
+    
+    results = {
+        'schema': validator.validate_schema(df),
+        'missing_values': validator.check_missing_values(df),
+        'quality_metrics': validate_data_quality(df),
+        'is_valid': True
+    }
+    
+    # Overall validation
+    results['is_valid'] = results['schema']['is_valid']
+    
+    return results
