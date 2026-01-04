@@ -5,7 +5,7 @@ from datetime import datetime
 default_args = {
     'owner': 'andriy',
     'start_date': datetime(2024, 1, 1),
-    'retries': 0, 
+    'retries': 0,
 }
 
 with DAG(
@@ -16,14 +16,17 @@ with DAG(
     tags=['mlops', 'churn']
 ) as dag:
 
+    # ВАЖЛИВО: додаємо 'cd /opt/airflow && ...'
+    # Це переходить в корінь проекту, щоб Python бачив папку 'data' і 'src'
+    
     validate_data = BashOperator(
         task_id='validate_data',
-        bash_command='python /opt/airflow/src/validate.py'
+        bash_command='cd /opt/airflow && export PYTHONPATH=$PYTHONPATH:/opt/airflow && python src/validate.py'
     )
 
     train_model = BashOperator(
         task_id='train_model',
-        bash_command='python /opt/airflow/src/train.py'
+        bash_command='cd /opt/airflow && export PYTHONPATH=$PYTHONPATH:/opt/airflow && python src/train.py'
     )
 
     validate_data >> train_model
