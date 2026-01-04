@@ -1,7 +1,7 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
-
+import os
 
 def check_model_performance(**context):
     """Check if model performance has degraded"""
@@ -11,8 +11,8 @@ def check_model_performance(**context):
     logger = logging.getLogger(__name__)
     logger.info("Checking model performance...")
     
-    # Setup MLflow
-    mlflow.set_tracking_uri(os.getenv('MLFLOW_TRACKING_URI', 'http://mlflow:5000'))
+    # Setup MLflow - ВИПРАВЛЕНО ТУТ (Жорстка адреса)
+    mlflow.set_tracking_uri("http://mlflow:5000")
     
     # Get production model
     client = mlflow.tracking.MlflowClient()

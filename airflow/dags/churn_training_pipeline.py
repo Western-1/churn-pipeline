@@ -233,10 +233,9 @@ def log_to_mlflow_task(**context):
     metrics = context['ti'].xcom_pull(key='metrics', task_ids='evaluate_model')
     model_path = context['ti'].xcom_pull(key='model_path', task_ids='train_model')
     
-    # Setup MLflow
-    mlflow.set_tracking_uri(os.getenv('MLFLOW_TRACKING_URI', 'http://mlflow:5000'))
-    mlflow.set_experiment('churn_prediction')
-    
+    # Setup MLflow - ВИПРАВЛЕНО ТУТ
+    mlflow.set_tracking_uri("http://mlflow:5000")
+    mlflow.set_experiment('churn_production_s3')
     # Load model
     model = joblib.load(model_path)
     
@@ -304,8 +303,8 @@ def register_model_task(**context):
     # Get MLflow run ID
     run_id = context['ti'].xcom_pull(key='mlflow_run_id', task_ids='log_to_mlflow')
     
-    # Setup MLflow
-    mlflow.set_tracking_uri(os.getenv('MLFLOW_TRACKING_URI', 'http://mlflow:5000'))
+    # Setup MLflow - ВИПРАВЛЕНО ТУТ
+    mlflow.set_tracking_uri("http://mlflow:5000")
     
     # Register model
     model_uri = f"runs:/{run_id}/model"
