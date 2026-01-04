@@ -9,6 +9,10 @@ x-common-env: &common-env
   POSTGRES_USER: airflow
   POSTGRES_PASSWORD: airflow
   POSTGRES_DB: airflow
+  AWS_ACCESS_KEY_ID: minioadmin
+  AWS_SECRET_ACCESS_KEY: minioadmin
+  MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+  AWS_DEFAULT_REGION: us-east-1
 
 services:
   # PostgreSQL Database
@@ -20,7 +24,7 @@ services:
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_final:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
@@ -52,7 +56,7 @@ services:
     networks:
       - churn-network
 
-  # MinIO Client (create buckets)
+  # MinIO Client
   minio-init:
     image: minio/mc:latest
     container_name: churn-minio-init
@@ -71,7 +75,7 @@ services:
     networks:
       - churn-network
 
-  # MLflow Server
+  # MLflow Server (ТЕПЕР НА SQLITE, ЩОБ НЕ КОНФЛІКТУВАТИ)
   mlflow:
     build:
       context: .
@@ -79,16 +83,23 @@ services:
     container_name: churn-mlflow
     environment:
       <<: *common-env
-      MLFLOW_BACKEND_STORE_URI: postgresql://airflow:airflow@postgres:5432/airflow
+      MLFLOW_BACKEND_STORE_URI: sqlite:////mlflow/mlflow.db
       MLFLOW_ARTIFACT_ROOT: s3://mlflow/
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
       MLFLOW_S3_ENDPOINT_URL: http://minio:9000
     ports:
       - "5000:5000"
+    volumes:
+      # Зберігаємо файл бази даних
+      - mlflow_data:/mlflow
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root s3://mlflow/
     depends_on:
-      postgres:
-        condition: service_healthy
       minio:
         condition: service_healthy
     healthcheck:
@@ -107,17 +118,12 @@ services:
     container_name: churn-airflow-webserver
     environment:
       <<: *common-env
-      # !!! ФІКС ІМПОРТІВ !!!
       PYTHONPATH: /opt/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
       AIRFLOW__CORE__FERNET_KEY: ''
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
       AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
-      _AIRFLOW_DB_UPGRADE: 'true'
-      _AIRFLOW_WWW_USER_CREATE: 'true'
-      _AIRFLOW_WWW_USER_USERNAME: airflow
-      _AIRFLOW_WWW_USER_PASSWORD: airflow
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./src:/opt/airflow/src
@@ -125,11 +131,9 @@ services:
       - airflow_logs:/opt/airflow/logs
     ports:
       - "8080:8080"
-    command: webserver
+    command: bash -c "airflow db migrate && airflow users create --username airflow --password airflow --firstname Airflow --lastname Admin --role Admin --email airflow@example.com && airflow webserver"
     depends_on:
       postgres:
-        condition: service_healthy
-      mlflow:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -147,7 +151,6 @@ services:
     container_name: churn-airflow-scheduler
     environment:
       <<: *common-env
-      # !!! ФІКС ІМПОРТІВ !!!
       PYTHONPATH: /opt/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
@@ -179,6 +182,9 @@ services:
     container_name: churn-inference
     environment:
       <<: *common-env
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
     ports:
       - "8000:8000"
     volumes:
@@ -195,7 +201,8 @@ services:
       - churn-network
 
 volumes:
-  postgres_data:
+  postgres_data_final:
+  mlflow_data:
   minio_data:
   airflow_logs:
 

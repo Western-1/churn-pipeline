@@ -66,7 +66,7 @@ async def load_model():
         
         # Load model from MLflow Model Registry
         try:
-            model_uri = f"models:/{settings.MODEL_NAME}/{settings.MODEL_STAGE}"
+            model_uri = f"models:/churn_prediction_model/Production"
             model = mlflow.sklearn.load_model(model_uri)
             logger.info(f"Loaded model from MLflow: {model_uri}")
         except Exception as e:
