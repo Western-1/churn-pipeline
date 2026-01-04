@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - churn-alertmanager:9093
+
+rule_files:
+  - "/etc/prometheus/alerts.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node-exporter'
+    static_configs:
+      # Використовуємо container_name з compose
+      - targets: ['churn-node-exporter:9100']
+
+  - job_name: 'churn-inference'
+    scrape_interval: 5s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['churn-inference:8000']
