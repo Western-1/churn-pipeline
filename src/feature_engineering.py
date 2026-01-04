@@ -20,31 +20,41 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
         self.feature_names_: Optional[List[str]] = None
         self.categorical_columns_: List[str] = []
         self.numerical_columns_: List[str] = []
+        # Важливо: зберігаємо список колонок для скалера, щоб він не змінювався між fit і transform
+        self.scaler_features_: List[str] = []
     
     def fit(self, X: pd.DataFrame, y=None):
         """Fit encoders and scaler on training data"""
         X = X.copy()
         
-        # Identify column types
+        # 1. Fix TotalCharges (Text -> Numeric)
+        if 'TotalCharges' in X.columns:
+            X['TotalCharges'] = pd.to_numeric(X['TotalCharges'], errors='coerce').fillna(0)
+        
+        # 2. Identify types
         self.categorical_columns_ = X.select_dtypes(include=['object']).columns.tolist()
         self.numerical_columns_ = X.select_dtypes(include=[np.number]).columns.tolist()
         
-        # Fit label encoders for categorical columns
+        # 3. Fit LabelEncoders (але поки не замінюємо значення в X на цифри, щоб правильно вибрати numeric columns далі)
         for col in self.categorical_columns_:
             le = LabelEncoder()
-            # Handle missing values
-            X[col] = X[col].fillna('missing')
-            le.fit(X[col])
+            # Тимчасове заповнення для навчання енкодера
+            temp_col = X[col].fillna('missing').astype(str)
+            le.fit(temp_col)
             self.label_encoders[col] = le
         
-        # Create engineered features for fitting scaler
+        # 4. Create engineered features
         X_transformed = self._create_features(X)
         
-        # Fit scaler on numerical features
+        # 5. Fit Scaler
         if self.scale_features:
             self.scaler = StandardScaler()
-            numerical_features = X_transformed.select_dtypes(include=[np.number]).columns
-            self.scaler.fit(X_transformed[numerical_features])
+            
+            # В цей момент категоріальні колонки все ще Strings (бо ми не робили transform),
+            # тому select_dtypes вибере ТІЛЬКИ справжні числа (MonthlyCharges, tenure, charges_per_month тощо)
+            self.scaler_features_ = X_transformed.select_dtypes(include=[np.number]).columns.tolist()
+            
+            self.scaler.fit(X_transformed[self.scaler_features_])
         
         self.feature_names_ = X_transformed.columns.tolist()
         
@@ -54,24 +64,31 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
         """Transform data using fitted encoders and scaler"""
         X = X.copy()
         
-        # Encode categorical columns
+        # 1. Fix TotalCharges
+        if 'TotalCharges' in X.columns:
+            X['TotalCharges'] = pd.to_numeric(X['TotalCharges'], errors='coerce').fillna(0)
+        
+        # 2. Apply Label Encoding (Тепер категорії стають числами-int)
         for col in self.categorical_columns_:
             if col in X.columns:
-                X[col] = X[col].fillna('missing')
-                # Handle unseen categories
-                X[col] = X[col].apply(
-                    lambda x: x if x in self.label_encoders[col].classes_ 
-                    else self.label_encoders[col].classes_[0]
-                )
-                X[col] = self.label_encoders[col].transform(X[col])
+                X[col] = X[col].fillna('missing').astype(str)
+                le = self.label_encoders[col]
+                
+                # Safe transform: unknown values -> 0
+                X[col] = X[col].map(lambda s: s if s in le.classes_ else le.classes_[0])
+                X[col] = le.transform(X[col])
         
-        # Create engineered features
+        # 3. Create Features
         X = self._create_features(X)
         
-        # Scale numerical features
+        # 4. Apply Scaler (Використовуючи збережений список!)
         if self.scale_features and self.scaler is not None:
-            numerical_features = X.select_dtypes(include=[np.number]).columns
-            X[numerical_features] = self.scaler.transform(X[numerical_features])
+            # Використовуємо self.scaler_features_, щоб не зачепити закодовані категорії (Contract, Gender...),
+            # які тепер теж стали числами, але скалер на них не вчився.
+            valid_features = [f for f in self.scaler_features_ if f in X.columns]
+            
+            if valid_features:
+                X[valid_features] = self.scaler.transform(X[valid_features])
         
         return X
     
@@ -83,7 +100,7 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
         """Create engineered features"""
         X = X.copy()
         
-        # Feature 1: Charges per month (avoid division by zero)
+        # Feature 1: Charges per month
         if 'TotalCharges' in X.columns and 'tenure' in X.columns:
             X['charges_per_month'] = X['TotalCharges'] / (X['tenure'] + 1)
         
@@ -94,15 +111,17 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
                 bins=[0, 12, 24, 48, 72],
                 labels=['0-1yr', '1-2yr', '2-4yr', '4-6yr']
             )
-            # Encode tenure_group if it was created
             if 'tenure_group' in X.columns:
                 X['tenure_group'] = X['tenure_group'].astype(str)
+                # Якщо викликається з transform без fit (рідкісно), треба обробити
                 if 'tenure_group' not in self.label_encoders:
                     le = LabelEncoder()
                     le.fit(X['tenure_group'])
                     self.label_encoders['tenure_group'] = le
-                X['tenure_group'] = self.label_encoders['tenure_group'].transform(
-                    X['tenure_group']
+                
+                le = self.label_encoders['tenure_group']
+                X['tenure_group'] = X['tenure_group'].map(
+                    lambda x: le.transform([x])[0] if x in le.classes_ else 0
                 )
         
         # Feature 3: Service combination

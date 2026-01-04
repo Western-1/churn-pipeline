@@ -1,9 +1,29 @@
-dvc
-dvc-s3
 pandas
-mlflow
-xgboost
-boto3
+numpy
 scikit-learn
+xgboost
+
+# MLOps
+mlflow
+dvc[s3]
+evidently
+
+# API
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# Storage
+boto3
 psycopg2-binary
+
+# Configuration
 python-dotenv
+
+# Monitoring
+prometheus-client
+
+# Utilities
+requests
+pyyaml

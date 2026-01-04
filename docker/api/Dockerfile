@@ -1,5 +1,4 @@
-FROM python:3.10-slim
-
+FROM python:3.11-slim
 WORKDIR /app
 
 RUN pip install fastapi pandas scikit-learn mlflow==2.14.1 boto3 pydantic xgboost granian
