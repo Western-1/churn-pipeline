@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch  # Додали patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,16 +12,23 @@ class TestAPIIntegration:
     @pytest.fixture
     def client(self):
         """Setup TestClient with mocked model"""
+        # Створюємо фейкову модель
         mock_model = MagicMock()
         mock_model.predict.return_value = [1]
         mock_model.predict_proba.return_value = [[0.2, 0.8]]
 
-        src.inference.model = mock_model
+        # FIX: "Глушимо" mlflow всередині src.inference,
+        # щоб startup event не намагався підключитися до мережі
+        with patch("src.inference.mlflow"):
+            # Примусово встановлюємо завантажену модель
+            src.inference.model = mock_model
 
-        with TestClient(app) as c:
-            yield c
+            # Тепер TestClient запуститься миттєво, бо mlflow.pyfunc.load_model - це просто заглушка
+            with TestClient(app) as c:
+                yield c
 
-        src.inference.model = None
+            # Прибираємо за собою
+            src.inference.model = None
 
     def test_health_endpoint(self, client):
         """Test health check endpoint"""

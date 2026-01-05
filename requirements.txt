@@ -37,3 +37,6 @@ matplotlib
 cryptography
 dill==0.3.7
 seaborn
+prometheus-client
+prometheus-client
+dill
