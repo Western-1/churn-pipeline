@@ -68,18 +68,13 @@ class TestDataValidator:
 
         missing_report = validator.check_missing_values(df)
 
-        # Robust check: look into the report safely
-        # Check if keys exist in the top level or nested
-        if "missing_values" in missing_report:
-            report_data = missing_report["missing_values"]
+        if "missing_by_column" in missing_report:
+            report_data = missing_report["missing_by_column"]
         else:
             report_data = missing_report
 
-        # Use .get() to avoid KeyError if key is missing
         tenure_missing = report_data.get("tenure", 0)
-
-        # Accept 1 (exact count) or check if key exists
-        assert tenure_missing > 0 or "tenure" in report_data
+        assert tenure_missing > 0
 
     def test_outlier_detection(self, sample_data):
         """Test outlier detection in numerical columns"""
@@ -110,7 +105,6 @@ class TestDataDrift:
         report_path = tmp_path / "drift_report.html"
 
         validator = DataValidator()
-        # Mock detection to ensure deterministic test
         with patch.object(validator, "detect_drift", return_value={"drift_detected": False}):
             drift_report = validator.detect_drift(reference, current, report_path=str(report_path))
             assert not drift_report["drift_detected"]
@@ -124,9 +118,7 @@ class TestDataDrift:
 
         validator = DataValidator()
 
-        # FIX: Force drift result using mock to avoid flakiness of statistical tests on small data
         fake_report = {"drift_detected": True, "details": "Drift detected by mock"}
-
         with patch.object(DataValidator, "detect_drift", return_value=fake_report):
             drift_report = validator.detect_drift(reference, current, report_path=str(report_path))
             assert drift_report is not None
