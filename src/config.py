@@ -87,7 +87,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
-        extra="ignore"  # Ignore extra env vars to prevent validation errors
+        extra="ignore",  # Ignore extra env vars to prevent validation errors
     )
 
 
