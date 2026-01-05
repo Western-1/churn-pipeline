@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     
+    # DVC Configuration
+    DVC_REMOTE: str = "minio"
+    DVC_CACHE_DIR: str = ".dvc/cache"
+    
     # MLflow Configuration
     MLFLOW_TRACKING_URI: str = Field(
         default="http://localhost:5000",
@@ -23,8 +27,12 @@ class Settings(BaseSettings):
     MINIO_ENDPOINT: str = Field(default="localhost:9000", env="MINIO_ENDPOINT")
     MINIO_ACCESS_KEY: str = Field(default="minioadmin", env="MINIO_ACCESS_KEY")
     MINIO_SECRET_KEY: str = Field(default="minioadmin", env="MINIO_SECRET_KEY")
-    MINIO_BUCKET: str = "mlflow"
+    MINIO_BUCKET: str = "dvc-storage"
     MINIO_SECURE: bool = False
+    
+    # DVC S3 Configuration
+    AWS_ACCESS_KEY_ID: str = Field(default="minioadmin", env="AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY: str = Field(default="minioadmin", env="AWS_SECRET_ACCESS_KEY")
     
     # Database Configuration
     POSTGRES_HOST: str = Field(default="localhost", env="POSTGRES_HOST")
@@ -50,7 +58,7 @@ class Settings(BaseSettings):
     RANDOM_STATE: int = 42
     CV_FOLDS: int = 5
     
-    # XGBoost Parameters
+    # XGBoost Parameters (будут браться из params.yaml через DVC)
     XGBOOST_MAX_DEPTH: int = 6
     XGBOOST_LEARNING_RATE: float = 0.1
     XGBOOST_N_ESTIMATORS: int = 100
@@ -58,7 +66,7 @@ class Settings(BaseSettings):
     XGBOOST_SUBSAMPLE: float = 0.8
     XGBOOST_COLSAMPLE_BYTREE: float = 0.8
     
-    # Data Paths
+    # Data Paths (DVC-managed)
     DATA_RAW_PATH: str = "data/raw/"
     DATA_PROCESSED_PATH: str = "data/processed/"
     DATA_REPORTS_PATH: str = "data/reports/"
