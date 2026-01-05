@@ -75,7 +75,7 @@ services:
     networks:
       - churn-network
 
-  # MLflow Server (ТЕПЕР НА SQLITE, ЩОБ НЕ КОНФЛІКТУВАТИ)
+  # MLflow Server
   mlflow:
     build:
       context: .
@@ -91,7 +91,6 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      # Зберігаємо файл бази даних
       - mlflow_data:/mlflow
     command: >
       mlflow server

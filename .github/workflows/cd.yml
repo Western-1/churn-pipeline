@@ -2,12 +2,13 @@ name: CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'feature/CI-CD-improve' ]
     tags:
       - 'v*.*.*'
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push:
@@ -25,7 +26,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # FIX: Переводимо ім'я репозиторію в нижній регістр (Western-1 -> western-1)
       - name: Downcase REPO NAME
         run: |
           echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
@@ -47,7 +47,6 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          # Використовуємо вже маленьку назву зі змінної середовища
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service }}
           tags: |
             type=ref,event=branch
@@ -78,10 +77,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
       - name: Deploy to staging
-        run: echo "Deploying to staging environment..."
+        run: |
+          echo "Deploying to staging environment..."
+          # Add your deployment commands here
+
       - name: Run smoke tests
-        run: echo "Running smoke tests..."
+        run: |
+          echo "Running smoke tests..."
 
   deploy-production:
     name: Deploy to Production
@@ -95,8 +99,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
       - name: Deploy to production
-        run: echo "Deploying to production environment..."
+        run: |
+          echo "Deploying to production environment..."
+
       - name: Create GitHub Release
         uses: actions/create-release@v1
         env:

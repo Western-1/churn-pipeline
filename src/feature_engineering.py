@@ -21,8 +21,6 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
         self.feature_names_: Optional[List[str]] = None
         self.categorical_columns_: List[str] = []
         self.numerical_columns_: List[str] = []
-        # Важливо: зберігаємо список колонок для скалера, щоб він не змінювався
-        # між fit і transform
         self.scaler_features_: List[str] = []
 
     def fit(self, X: pd.DataFrame, y=None):

@@ -4,7 +4,7 @@ import time
 import requests
 
 url_predict = "http://localhost:8000/predict"
-url_feedback = "http://localhost:8000/feedback"  # Ендпоінт для правдивих відповідей
+url_feedback = "http://localhost:8000/feedback"
 
 
 def generate_data(with_drift=False):
@@ -15,7 +15,7 @@ def generate_data(with_drift=False):
         "Dependents": random.choice(["Yes", "No"]),
         "tenure": (
             random.randint(1, 72) if not with_drift else random.randint(200, 500)
-        ),  # Дрифт тут
+        ),
         "PhoneService": random.choice(["Yes", "No"]),
         "MultipleLines": random.choice(["No phone service", "No", "Yes"]),
         "InternetService": random.choice(["DSL", "Fiber optic", "No"]),
@@ -44,8 +44,7 @@ def generate_data(with_drift=False):
 print("🚀 Starting ENHANCED load test...")
 
 while True:
-    # 1. Створюємо прогноз
-    make_drift = random.random() < 0.1  # 10% шанс дрифту даних
+    make_drift = random.random() < 0.1 
     data = generate_data(with_drift=make_drift)
 
     try:
@@ -54,8 +53,6 @@ while True:
             pred_data = res.json()
             prediction = pred_data["churn_prediction"]
 
-            # 2. Симулюємо отримання реального результату (через 1 сек)
-            # Припустимо, наша модель помиляється у 15% випадків
             is_correct = random.random() > 0.15
             ground_truth = prediction if is_correct else (1 - prediction)
 
@@ -67,4 +64,4 @@ while True:
     except Exception as e:
         print(f"🚨 Error: {e}")
 
-    time.sleep(0.2)  # Швидше навантаження
+    time.sleep(0.2)

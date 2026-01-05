@@ -3,7 +3,7 @@ import logging
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional  # Додано Optional сюди
+from typing import Any, Dict, Optional
 
 import yaml
 
@@ -59,7 +59,6 @@ def load_json(path: str) -> Dict[str, Any]:
         return json.load(f)  # type: ignore
 
 
-# ВИПРАВЛЕНО ТУТ: path: Optional[str] = None замість path: str = None
 def dvc_pull(path: Optional[str] = None) -> bool:
     """
     Pull data from DVC remote storage
@@ -88,7 +87,6 @@ def dvc_pull(path: Optional[str] = None) -> bool:
         return False
 
 
-# ВИПРАВЛЕНО ТУТ: path: Optional[str] = None замість path: str = None
 def dvc_push(path: Optional[str] = None) -> bool:
     """
     Push data to DVC remote storage
