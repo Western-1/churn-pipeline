@@ -2,7 +2,7 @@ name: CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'feature/CI-CD-improve' ] # Додано вашу гілку для тестування білда
     tags:
       - 'v*.*.*'
 
@@ -79,6 +79,7 @@ jobs:
       - name: Deploy to staging
         run: |
           echo "Deploying to staging environment..."
+          # Add your deployment commands here
 
       - name: Run smoke tests
         run: |

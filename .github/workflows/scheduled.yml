@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     # FIX: Removed 'services' block entirely. 
-    # We are using docker-compose below, which will start Postgres.
-    # Defining it here causes a port 5432 conflict.
+    # We are using docker-compose below, which will start Postgres, MinIO, etc.
+    # Defining it here causes a port 5432/9000 conflict.
 
     steps:
       - name: Checkout code
@@ -40,6 +40,7 @@ jobs:
         run: |
           curl -f http://localhost:8000/health || exit 1
           curl -f http://localhost:5000/health || exit 1
+          # curl -f http://localhost:8080/health || exit 1 # Airflow might take longer
 
       - name: Cleanup
         if: always()
