@@ -53,9 +53,7 @@ while True:
             # Simulate feedback
             if random.random() < 0.3:
                 truth = pred if random.random() < 0.9 else 1 - pred
-                requests.post(
-                    url_feedback, json={"prediction": pred, "ground_truth": truth}
-                )
+                requests.post(url_feedback, json={"prediction": pred, "ground_truth": truth})
                 print("  (Feedback sent)")
         else:
             print(f"Error: {res.status_code}")
@@ -64,3 +62,4 @@ while True:
         print(f"Request failed: {e}")
 
     time.sleep(0.5)
+    
