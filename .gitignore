@@ -22,7 +22,6 @@ build/
 Thumbs.db
 
 # --- Project Data (Never commit raw data) ---
-data/raw/*
 data/processed/*
 data/reports/*
 # Виняток: не ігнорувати файл .gitkeep (щоб Git бачив порожні папки)
