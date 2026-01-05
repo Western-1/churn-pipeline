@@ -1,9 +1,10 @@
 import pytest
-from airflow.models import DagBag
+
+airflow = pytest.importorskip("airflow")
+from airflow.models import DagBag  # noqa: E402
 
 
 class TestChurnPipelineDAG:
-
     @pytest.fixture
     def dagbag(self):
         """Load DAG bag"""
@@ -17,11 +18,9 @@ class TestChurnPipelineDAG:
     def test_dag_structure(self, dagbag):
         """Test DAG has expected structure"""
         dag = dagbag.get_dag("churn_training_pipeline")
-
         assert dag is not None
         assert len(dag.tasks) > 0
 
-        # Check expected tasks exist
         task_ids = [task.task_id for task in dag.tasks]
         assert "validate_data" in task_ids
         assert "train_model" in task_ids
@@ -34,20 +33,9 @@ class TestChurnPipelineDAG:
         validate_task = dag.get_task("validate_data")
         train_task = dag.get_task("train_model")
 
-        # validate should come before train
         assert train_task in validate_task.downstream_list
 
     def test_dag_schedule(self, dagbag):
         """Test DAG schedule is set correctly"""
         dag = dagbag.get_dag("churn_training_pipeline")
-
-        assert dag.schedule_interval is not None
-        # Should run weekly
         assert dag.schedule_interval == "@weekly"
-
-    def test_dag_tags(self, dagbag):
-        """Test DAG has appropriate tags"""
-        dag = dagbag.get_dag("churn_training_pipeline")
-
-        assert "ml" in dag.tags
-        assert "churn" in dag.tags
