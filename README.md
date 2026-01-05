@@ -25,7 +25,7 @@ Churn_Prediction_Pipeline/
 ├── .dvc/
 ├── airflow/
 │   └──dags/
-│   └── plugins/                    
+│   └── plugins/
 ├── dags/
 │   └── churn_training_pipeline.py  # Airflow DAG definition
 ├── data/
@@ -44,7 +44,7 @@ Churn_Prediction_Pipeline/
 │   ├── train.py                    # Training logic & MLflow logging
 │   └── validate.py                 # Data validation logic (Evidently)
 ├── tests/
-├── .dvcignore                      
+├── .dvcignore
 ├── .env                            # Environment variables
 ├── .gitignore
 ├── docker-compose.yml              # Multi-service infrastructure
