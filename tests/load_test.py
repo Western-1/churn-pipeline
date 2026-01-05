@@ -1,6 +1,5 @@
-import random
 import time
-
+import random
 import requests
 
 url_predict = "http://localhost:8000/predict"
@@ -13,9 +12,7 @@ def generate_data(with_drift=False):
         "SeniorCitizen": random.choice([0, 1]),
         "Partner": random.choice(["Yes", "No"]),
         "Dependents": random.choice(["Yes", "No"]),
-        "tenure": (
-            random.randint(1, 72) if not with_drift else random.randint(200, 500)
-        ),
+        "tenure": (random.randint(1, 72) if not with_drift else random.randint(200, 500)),
         "PhoneService": random.choice(["Yes", "No"]),
         "MultipleLines": random.choice(["No phone service", "No", "Yes"]),
         "InternetService": random.choice(["DSL", "Fiber optic", "No"]),
@@ -35,8 +32,8 @@ def generate_data(with_drift=False):
                 "Credit card (automatic)",
             ]
         ),
-        "MonthlyCharges": round(random.uniform(18.0, 118.0), 2),
-        "TotalCharges": round(random.uniform(18.0, 8000.0), 2),
+        "MonthlyCharges": round(random.uniform(20.0, 100.0), 2),
+        "TotalCharges": round(random.uniform(20.0, 5000.0), 2),
     }
     return data
 
@@ -44,24 +41,26 @@ def generate_data(with_drift=False):
 print("🚀 Starting ENHANCED load test...")
 
 while True:
-    make_drift = random.random() < 0.1 
+    make_drift = random.random() < 0.1
     data = generate_data(with_drift=make_drift)
 
     try:
         res = requests.post(url_predict, json=data)
         if res.status_code == 200:
-            pred_data = res.json()
-            prediction = pred_data["churn_prediction"]
+            pred = res.json()["churn_prediction"]
+            print(f"Prediction: {pred} | Drift: {make_drift}")
 
-            is_correct = random.random() > 0.15
-            ground_truth = prediction if is_correct else (1 - prediction)
-
-            feedback = {"prediction": prediction, "ground_truth": int(ground_truth)}
-            requests.post(url_feedback, json=feedback)
-
-            print(f"✅ Predict: {prediction} | Actual: {ground_truth} | Drift: {make_drift}")
+            # Simulate feedback
+            if random.random() < 0.3:
+                truth = pred if random.random() < 0.9 else 1 - pred
+                requests.post(
+                    url_feedback, json={"prediction": pred, "ground_truth": truth}
+                )
+                print("  (Feedback sent)")
+        else:
+            print(f"Error: {res.status_code}")
 
     except Exception as e:
-        print(f"🚨 Error: {e}")
+        print(f"Request failed: {e}")
 
-    time.sleep(0.2)
+    time.sleep(0.5)
