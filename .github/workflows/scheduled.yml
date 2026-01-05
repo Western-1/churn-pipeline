@@ -3,14 +3,14 @@ name: Scheduled Tests
 on:
   schedule:
     - cron: '0 2 * * *'
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   integration-tests:
     name: Full Integration Tests
     runs-on: ubuntu-latest
 
-    # FIX: Removed 'services' block entirely. 
+    # FIX: Removed 'services' block entirely.
     # We are using docker-compose below, which will start Postgres, MinIO, etc.
     # Defining it here causes a port 5432/9000 conflict.
 

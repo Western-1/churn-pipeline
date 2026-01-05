@@ -1,5 +1,6 @@
-import time
 import random
+import time
+
 import requests
 
 url_predict = "http://localhost:8000/predict"
@@ -62,4 +63,3 @@ while True:
         print(f"Request failed: {e}")
 
     time.sleep(0.5)
-    
