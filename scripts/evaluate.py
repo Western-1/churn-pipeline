@@ -57,7 +57,7 @@ def plot_confusion_matrix(y_true, y_pred, save_path):
             plt.text(
                 j + 0.5,
                 i + 0.7,
-                f"{cm[i, j]/total*100:.1f}%",  # ВИПРАВЛЕНО ТУТ: додано пробіл після коми [i, j]
+                f"{cm[i, j]/total*100:.1f}%",
                 ha="center",
                 va="center",
                 fontsize=10,

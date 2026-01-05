@@ -1,7 +1,6 @@
 from typing import Optional
 
-from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -17,26 +16,27 @@ class Settings(BaseSettings):
     DVC_CACHE_DIR: str = ".dvc/cache"
 
     # MLflow Configuration
-    MLFLOW_TRACKING_URI: str = Field(default="http://localhost:5000", env="MLFLOW_TRACKING_URI")
+    # BaseSettings automatically maps env vars matching field names
+    MLFLOW_TRACKING_URI: str = "http://localhost:5000"
     MLFLOW_EXPERIMENT_NAME: str = "churn_prediction"
     MLFLOW_ARTIFACT_LOCATION: Optional[str] = None
 
     # MinIO / S3 Configuration
-    MINIO_ENDPOINT: str = Field(default="localhost:9000", env="MINIO_ENDPOINT")
-    MINIO_ACCESS_KEY: str = Field(default="minioadmin", env="MINIO_ACCESS_KEY")
-    MINIO_SECRET_KEY: str = Field(default="minioadmin", env="MINIO_SECRET_KEY")
+    MINIO_ENDPOINT: str = "localhost:9000"
+    MINIO_ACCESS_KEY: str = "minioadmin"
+    MINIO_SECRET_KEY: str = "minioadmin"
     MINIO_BUCKET: str = "dvc-storage"
     MINIO_SECURE: bool = False
 
     # DVC S3 Configuration
-    AWS_ACCESS_KEY_ID: str = Field(default="minioadmin", env="AWS_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY: str = Field(default="minioadmin", env="AWS_SECRET_ACCESS_KEY")
+    AWS_ACCESS_KEY_ID: str = "minioadmin"
+    AWS_SECRET_ACCESS_KEY: str = "minioadmin"
 
     # Database Configuration
-    POSTGRES_HOST: str = Field(default="localhost", env="POSTGRES_HOST")
+    POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str = Field(default="airflow", env="POSTGRES_USER")
-    POSTGRES_PASSWORD: str = Field(default="airflow", env="POSTGRES_PASSWORD")
+    POSTGRES_USER: str = "airflow"
+    POSTGRES_PASSWORD: str = "airflow"
     POSTGRES_DB: str = "airflow"
 
     @property
@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     RANDOM_STATE: int = 42
     CV_FOLDS: int = 5
 
-    # XGBoost Parameters (будут браться из params.yaml через DVC)
+    # XGBoost Parameters
     XGBOOST_MAX_DEPTH: int = 6
     XGBOOST_LEARNING_RATE: float = 0.1
     XGBOOST_N_ESTIMATORS: int = 100
@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     XGBOOST_SUBSAMPLE: float = 0.8
     XGBOOST_COLSAMPLE_BYTREE: float = 0.8
 
-    # Data Paths (DVC-managed)
+    # Data Paths
     DATA_RAW_PATH: str = "data/raw/"
     DATA_PROCESSED_PATH: str = "data/processed/"
     DATA_REPORTS_PATH: str = "data/reports/"
@@ -82,10 +82,13 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
+    # Pydantic V2 Configuration
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",  # Ignore extra env vars to prevent validation errors
+    )
 
 
 # Singleton instance

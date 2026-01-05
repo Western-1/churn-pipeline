@@ -1,7 +1,15 @@
 import pytest
-from airflow.models import DagBag
+
+try:
+    from airflow.models import DagBag
+
+    airflow_installed = True
+except ImportError:
+    airflow_installed = False
+    DagBag = None
 
 
+@pytest.mark.skipif(not airflow_installed, reason="Airflow not installed in CI environment")
 class TestChurnPipelineDAG:
 
     @pytest.fixture
@@ -21,7 +29,6 @@ class TestChurnPipelineDAG:
         assert dag is not None
         assert len(dag.tasks) > 0
 
-        # Check expected tasks exist
         task_ids = [task.task_id for task in dag.tasks]
         assert "validate_data" in task_ids
         assert "train_model" in task_ids
@@ -34,7 +41,6 @@ class TestChurnPipelineDAG:
         validate_task = dag.get_task("validate_data")
         train_task = dag.get_task("train_model")
 
-        # validate should come before train
         assert train_task in validate_task.downstream_list
 
     def test_dag_schedule(self, dagbag):
@@ -42,7 +48,6 @@ class TestChurnPipelineDAG:
         dag = dagbag.get_dag("churn_training_pipeline")
 
         assert dag.schedule_interval is not None
-        # Should run weekly
         assert dag.schedule_interval == "@weekly"
 
     def test_dag_tags(self, dagbag):

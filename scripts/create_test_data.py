@@ -6,53 +6,50 @@ import requests
 url = "http://localhost:8000/predict"
 
 
-# 🔴 Генерируем клиента, который ГАРАНТИРОВАННО должен уйти
-# (Максимально плохие условия для удержания)
 def generate_toxic_customer():
     return {
         "gender": "Female",
-        "SeniorCitizen": 1,  # Пенсионеры чаще уходят
-        "Partner": "No",  # Нет привязки к семье
+        "SeniorCitizen": 1,
+        "Partner": "No",
         "Dependents": "No",
-        "tenure": 1,  # Только пришел (1 месяц)
+        "tenure": 1,
         "PhoneService": "Yes",
         "MultipleLines": "Yes",
-        "InternetService": "Fiber optic",  # Самый дорогой и проблемный инет
+        "InternetService": "Fiber optic",
         "OnlineSecurity": "No",
         "OnlineBackup": "No",
         "DeviceProtection": "No",
-        "TechSupport": "No",  # Никакой поддержки
-        "StreamingTV": "Yes",  # Набрал услуг...
-        "StreamingMovies": "Yes",  # ...чтобы чек был огромным
-        "Contract": "Month-to-month",  # Никаких обязательств
+        "TechSupport": "No",
+        "StreamingTV": "Yes",
+        "StreamingMovies": "Yes",
+        "Contract": "Month-to-month",
         "PaperlessBilling": "Yes",
-        "PaymentMethod": "Electronic check",  # Самый "ненадежный" метод
-        "MonthlyCharges": 118.75,  # МАКСИМАЛЬНО возможная цена в датасете
-        "TotalCharges": 118.75,  # Равно месячной, так как 1й месяц
+        "PaymentMethod": "Electronic check",
+        "MonthlyCharges": 118.75,
+        "TotalCharges": 118.75,
     }
 
 
-# 🟢 Идеальный клиент (Лояльный)
 def generate_loyal_customer():
     return {
         "gender": "Male",
         "SeniorCitizen": 0,
         "Partner": "Yes",
         "Dependents": "Yes",
-        "tenure": 72,  # С нами 6 лет (максимум)
+        "tenure": 72,
         "PhoneService": "Yes",
         "MultipleLines": "No",
-        "InternetService": "No",  # Нет интернета - нет проблем
+        "InternetService": "No",
         "OnlineSecurity": "No internet service",
         "OnlineBackup": "No internet service",
         "DeviceProtection": "No internet service",
         "TechSupport": "No internet service",
         "StreamingTV": "No internet service",
         "StreamingMovies": "No internet service",
-        "Contract": "Two year",  # Контракт на 2 года
+        "Contract": "Two year",
         "PaperlessBilling": "No",
         "PaymentMethod": "Mailed check",
-        "MonthlyCharges": 20.0,  # Минимальная цена
+        "MonthlyCharges": 20.0,
         "TotalCharges": 1400.0,
     }
 
@@ -60,7 +57,6 @@ def generate_loyal_customer():
 print("🚀 Starting EXTREME Load Test...")
 
 while True:
-    # Чередуем: Плохой -> Хороший
     if random.random() > 0.5:
         data = generate_toxic_customer()
         type_cust = "🤬 TOXIC"
@@ -84,4 +80,4 @@ while True:
     except Exception as e:
         print(f"🚨 Connection error: {e}")
 
-    time.sleep(0.2)  # Шлем быстро, чтобы забить графики
+    time.sleep(0.2)
