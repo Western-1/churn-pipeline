@@ -79,7 +79,6 @@ class TestModelTraining:
 
         model, _ = train_model(X, y)
 
-        # FIX: Unpack tuple (metrics, y_pred, y_prob)
         metrics, _, _ = evaluate_model(model, X, y)
 
         assert isinstance(metrics, dict)

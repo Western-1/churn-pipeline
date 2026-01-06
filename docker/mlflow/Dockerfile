@@ -5,13 +5,11 @@ LABEL description="MLflow Tracking Server"
 
 WORKDIR /mlflow
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install MLflow and dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
     mlflow==2.8.1 \
@@ -19,20 +17,16 @@ RUN pip install --no-cache-dir --upgrade pip && \
     boto3==1.29.7 \
     cryptography==41.0.7
 
-# Create non-root user
 RUN useradd -m -u 1000 mlflow && \
     chown -R mlflow:mlflow /mlflow
 
 USER mlflow
 
-# Expose port
 EXPOSE 5000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
-# Run MLflow server
 CMD ["mlflow", "server", \
      "--host", "0.0.0.0", \
      "--port", "5000", \

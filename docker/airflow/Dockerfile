@@ -14,7 +14,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=airflow:root airflow/dags /opt/airflow/dags
-# COPY --chown=airflow:root airflow/plugins /opt/airflow/plugins
 COPY --chown=airflow:root src/ /opt/airflow/src/
 
 ENV AIRFLOW__CORE__LOAD_EXAMPLES=False

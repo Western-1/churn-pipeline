@@ -4,9 +4,7 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    # Використовуємо повне ім'я сервісу з docker-compose
     url: http://churn-prometheus:9090
     isDefault: true
     editable: false
-    # Це критично важливо для роботи твого JSON дашборду
     uid: Prometheus

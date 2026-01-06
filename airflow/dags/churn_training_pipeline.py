@@ -37,17 +37,11 @@ def validate_data_task(**context):
 
     logger.info("Starting data validation...")
 
-    # Load data
-    data_path = "/opt/airflow/data/raw/churn.csv"
-    df = pd.read_csv(data_path)
+    raw_data_path = "data/raw/churn.csv"
+    validation_results = run_validation(raw_data_path)
 
-    # Run validation
-    validation_results = run_validation(df)
-
-    # Store results in XCom
     context["ti"].xcom_push(key="validation_results", value=validation_results)
 
-    # Check if validation passed
     if not validation_results["is_valid"]:
         raise ValueError(f"Data validation failed: {validation_results['errors']}")
 

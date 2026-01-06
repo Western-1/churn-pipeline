@@ -45,12 +45,6 @@ class DataValidator:
     def validate_schema(self, df):
         """
         Validate dataframe schema
-
-        Args:
-            df: DataFrame to validate
-
-        Returns:
-            Dictionary with validation results
         """
         logger.info("Validating data schema...")
 
@@ -73,12 +67,6 @@ class DataValidator:
     def check_missing_values(self, df):
         """
         Check for missing values
-
-        Args:
-            df: DataFrame to check
-
-        Returns:
-            Dictionary with missing value counts
         """
         logger.info("Checking for missing values...")
 
@@ -102,18 +90,14 @@ class DataValidator:
     def detect_outliers(self, df, column, method="iqr", threshold=1.5):
         """
         Detect outliers in a numerical column
-
-        Args:
-            df: DataFrame
-            column: Column name
-            method: 'iqr' or 'zscore'
-            threshold: Threshold for outlier detection
-
-        Returns:
-            Dictionary with outlier information
         """
         if column not in df.columns:
             logger.warning(f"Column {column} not found")
+            return {"count": 0, "percentage": 0.0}
+
+        # Ensure column is numeric before calculating quantiles
+        if not pd.api.types.is_numeric_dtype(df[column]):
+            logger.warning(f"Column {column} is not numeric, skipping outlier detection.")
             return {"count": 0, "percentage": 0.0}
 
         if method == "iqr":
@@ -138,14 +122,6 @@ class DataValidator:
     def detect_drift(self, reference_data, current_data, report_path):
         """
         Detect data drift using Evidently
-
-        Args:
-            reference_data: Reference DataFrame
-            current_data: Current DataFrame
-            report_path: Path to save HTML report
-
-        Returns:
-            Dictionary with drift detection results
         """
         logger.info("Detecting data drift...")
 
@@ -178,12 +154,6 @@ class DataValidator:
 def validate_data_quality(df):
     """
     Calculate data quality metrics
-
-    Args:
-        df: DataFrame to evaluate
-
-    Returns:
-        Dictionary with quality metrics
     """
     logger.info("Calculating data quality metrics...")
 
@@ -220,14 +190,6 @@ def validate_data_quality(df):
 def run_validation(input_path, output_dir=None, reference_path=None):
     """
     Run complete validation pipeline
-
-    Args:
-        input_path: Path to data to validate
-        output_dir: Directory to save reports
-        reference_path: Path to reference data for drift detection
-
-    Returns:
-        Dictionary with all validation results
     """
     logger.info(f"Starting validation pipeline for {input_path}")
 
@@ -239,6 +201,10 @@ def run_validation(input_path, output_dir=None, reference_path=None):
     # Load data
     df = pd.read_csv(input_path)
     logger.info(f"Loaded {len(df)} rows from {input_path}")
+
+    if "TotalCharges" in df.columns:
+        df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
+        df["TotalCharges"] = df["TotalCharges"].fillna(0)
 
     # Initialize validator
     validator = DataValidator()
@@ -263,6 +229,12 @@ def run_validation(input_path, output_dir=None, reference_path=None):
             logger.warning(f"Reference data not found: {reference_path}")
         else:
             reference_df = pd.read_csv(reference_path)
+
+            # Також конвертуємо TotalCharges для референсного датасету
+            if "TotalCharges" in reference_df.columns:
+                reference_df["TotalCharges"] = pd.to_numeric(
+                    reference_df["TotalCharges"], errors="coerce"
+                ).fillna(0)
 
             # Ensure same columns
             common_cols = list(set(df.columns) & set(reference_df.columns))

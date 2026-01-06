@@ -49,8 +49,6 @@ def test_load_simulation(sample_payload):
         assert response.status_code == 200
 
     duration = time.time() - start_time
-    # Simple assertion that 50 requests finish in reasonable time (e.g., < 2s locally)
-    # This might vary on GitHub Actions runners
     assert duration < 5.0
 
 

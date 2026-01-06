@@ -10,10 +10,6 @@ jobs:
     name: Full Integration Tests
     runs-on: ubuntu-latest
 
-    # FIX: Removed 'services' block entirely.
-    # We are using docker-compose below, which will start Postgres, MinIO, etc.
-    # Defining it here causes a port 5432/9000 conflict.
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
