@@ -202,6 +202,10 @@ The entire workflow is managed by Apache Airflow with smart branching based on m
 ![Airflow DAG](images/Airflow.png)
 *Figure 1: Airflow DAG execution graph (Data Validation → Training → Deployment)*
 
+### 🎥 Pipeline Demo
+
+https://github.com/user-attachments/assets/50109779-18c8-4fd4-ba51-23c469f466a8
+
 **Pipeline Steps:**
 1. **Data Validation** - Evidently checks for drift & quality
 2. **Feature Engineering** - Transform & create features
